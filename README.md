@@ -27,8 +27,10 @@ No credentials needed — pick one of four roles on the sign-in screen.
 
 - [`specs/`](specs/) — the requirement set this is built against: user stories with acceptance
   criteria, the access control model, the API contract, decision records and a traceability matrix
-- [`docs/architecture.html`](docs/architecture.html) — architecture write-up with diagrams (open in
-  a browser)
+- [`docs/swiss-re-architecture.pdf`](docs/swiss-re-architecture.pdf) — architecture write-up with
+  diagrams. GitHub previews this in the browser; it is the same document as the HTML below
+- [`docs/architecture.html`](docs/architecture.html) — the source of that document. Open it
+  locally for the live version, which adapts to light and dark themes
 
 ---
 

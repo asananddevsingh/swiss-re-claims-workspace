@@ -401,7 +401,7 @@
     <li><strong>A wide-and-shallow problem.</strong> 20,000+ claims, sorted and filtered many ways,
       where the user needs the right ten rows fast.</li>
     <li><strong>A narrow-and-deep problem.</strong> One document of 100&nbsp;MB–1.5&nbsp;GB, where
-      the user needs page 3,412 and nothing else — and then wants to split it.</li>
+      the user needs page 1,800 and nothing else — and then wants to split it.</li>
   </ul>
 
   <p>
@@ -817,14 +817,14 @@
       <rect x="722" y="120" width="276" height="150" rx="7" class="dg-box" />
       <text x="860" y="152" class="dg-label dg-note" text-anchor="middle">OBJECT STORE</text>
       <text x="860" y="192" class="dg-title" text-anchor="middle" style="font-size:26px; font-family:ui-monospace,Menlo,monospace">1.5 GB</text>
-      <text x="860" y="216" class="dg-label dg-note" text-anchor="middle">linearised PDF · 4,180 pages</text>
+      <text x="860" y="216" class="dg-label dg-note" text-anchor="middle">linearised PDF · 2,400 pages</text>
       <text x="860" y="240" class="dg-label dg-note" text-anchor="middle">Accept-Ranges: bytes</text>
 
       <!-- browser -->
       <rect x="0" y="120" width="248" height="150" rx="7" class="dg-box" />
       <text x="124" y="152" class="dg-label dg-note" text-anchor="middle">WORKSPACE</text>
       <text x="124" y="182" class="dg-label dg-title" text-anchor="middle">~5 canvases mounted</text>
-      <text x="124" y="204" class="dg-label dg-note" text-anchor="middle">page 3,412 in view</text>
+      <text x="124" y="204" class="dg-label dg-note" text-anchor="middle">page 1,800 in view</text>
       <text x="124" y="232" class="dg-label dg-note" text-anchor="middle">render tasks cancelled</text>
       <text x="124" y="250" class="dg-label dg-note" text-anchor="middle">on scroll-away</text>
 
@@ -846,7 +846,7 @@
       <text x="248" y="396" class="dg-label dg-note">this is the path PDF.js takes by default; disableAutoFetch closes it</text>
 
       <line x1="0" y1="60" x2="1000" y2="60" stroke="var(--rule)" stroke-width="1" />
-      <text x="0" y="42" class="dg-label dg-note">TOTAL TRANSFERRED TO OPEN A 1.5 GB DOCUMENT AT PAGE 3,412 — ABOUT 104 KB</text>
+      <text x="0" y="42" class="dg-label dg-note">TOTAL TRANSFERRED TO OPEN THE DOCUMENT AT PAGE 1,800 — ABOUT 104 KB</text>
     </svg>
     <figcaption>
       <b>The crossed-out arrow is the whole point.</b> PDF.js background-fetches the entire file
@@ -1046,7 +1046,7 @@
   <div class="decision">
     <h4>Server-side page rasterisation <span class="pill chosen">chosen</span> over pure client parsing <span class="pill rejected">rejected</span></h4>
     <dl>
-      <dt>Because</dt><dd>Thumbnails for 4,000 pages cannot be produced in the browser at acceptable cost, and rasterising once server-side serves every user who opens that document.</dd>
+      <dt>Because</dt><dd>Thumbnails for thousands of pages cannot be produced in the browser at acceptable cost, and rasterising once server-side serves every user who opens that document.</dd>
       <dt>Costs</dt><dd>Rasterisation infrastructure and a cache to maintain; first-open latency for a never-seen document.</dd>
       <dt>Revisit if</dt><dd>Documents are small and rarely shared — then client-only rendering removes a whole service.</dd>
     </dl>
@@ -1073,7 +1073,7 @@
       the function to handle. The protocol is the part that has to be right; the executor swaps out.</li>
 
     <li><strong>Estimated counts should become a maintained aggregate.</strong> A materialised count
-      per common filter combination, refreshed by trigger, replaces the TTL cache once query
+      per common filter combination, refreshed by trigger, replaces the per-request estimate once query
       patterns are known from real usage.</li>
 
     <li><strong>Annotation concurrency is last-write-wins.</strong> Adequate for one adjudicator per
