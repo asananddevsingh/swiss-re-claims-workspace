@@ -1,0 +1,1104 @@
+<title>Claims Adjudication Workspace — Architecture</title>
+
+<style>
+  :root {
+    --ground: #FBFAFE;
+    --surface: #FFFFFF;
+    --sunken: #F4F3FA;
+    --ink: #292D32;
+    --ink-soft: #55596B;
+    --muted: #9197B3;
+    --rule: #E4E2EF;
+    --rule-soft: #EFEDF6;
+    --accent: #5932EA;
+    --accent-soft: #EEEAFD;
+    --good: #008767;
+    --good-soft: #E3F7EF;
+    --bad: #DF0404;
+    --bad-soft: #FDECEC;
+    --warn: #9A6700;
+    --warn-soft: #FBF3DE;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #141319;
+      --surface: #1B1A22;
+      --sunken: #211F2A;
+      --ink: #E8E6EF;
+      --ink-soft: #B3B0C2;
+      --muted: #8A87A0;
+      --rule: #2E2B39;
+      --rule-soft: #262330;
+      --accent: #A78BFA;
+      --accent-soft: #241E3C;
+      --good: #3DD9A4;
+      --good-soft: #122C24;
+      --bad: #FF7A7A;
+      --bad-soft: #2E1717;
+      --warn: #E5B54B;
+      --warn-soft: #2B2413;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #141319;
+    --surface: #1B1A22;
+    --sunken: #211F2A;
+    --ink: #E8E6EF;
+    --ink-soft: #B3B0C2;
+    --muted: #8A87A0;
+    --rule: #2E2B39;
+    --rule-soft: #262330;
+    --accent: #A78BFA;
+    --accent-soft: #241E3C;
+    --good: #3DD9A4;
+    --good-soft: #122C24;
+    --bad: #FF7A7A;
+    --bad-soft: #2E1717;
+    --warn: #E5B54B;
+    --warn-soft: #2B2413;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.62;
+    margin: 0;
+    padding: 0 24px 120px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  .col { max-width: 68ch; }
+
+  /* ---- masthead ---- */
+
+  header.masthead {
+    padding: 72px 0 40px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 56px;
+  }
+
+  .kicker {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 18px;
+  }
+
+  h1 {
+    font-size: clamp(30px, 4.4vw, 44px);
+    line-height: 1.12;
+    letter-spacing: -0.022em;
+    font-weight: 620;
+    text-wrap: balance;
+    margin: 0 0 20px;
+  }
+
+  .standfirst {
+    font-size: 18px;
+    line-height: 1.58;
+    color: var(--ink-soft);
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin-top: 32px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .meta b { color: var(--ink-soft); font-weight: 500; }
+
+  /* ---- sections ---- */
+
+  section { margin-bottom: 64px; }
+
+  .eyebrow {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 12px;
+  }
+  .eyebrow::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+  .eyebrow .tag {
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 2px 7px;
+    border-radius: 3px;
+  }
+
+  h2 {
+    font-size: 26px;
+    line-height: 1.24;
+    letter-spacing: -0.017em;
+    font-weight: 600;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-size: 17px;
+    line-height: 1.35;
+    font-weight: 620;
+    letter-spacing: -0.008em;
+    margin: 34px 0 10px;
+  }
+
+  p { margin: 0 0 16px; }
+  .col > p, .col > ul, .col > ol { max-width: 68ch; }
+
+  ul, ol { margin: 0 0 16px; padding-left: 22px; }
+  li { margin-bottom: 7px; }
+
+  strong { font-weight: 620; }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.875em;
+    background: var(--sunken);
+    border: 1px solid var(--rule-soft);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+
+  /* ---- figures ---- */
+
+  figure {
+    margin: 32px 0 34px;
+    padding: 26px 24px 18px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    overflow-x: auto;
+  }
+  figure svg {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-width: 560px;
+    color: var(--ink-soft);
+  }
+  figcaption {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule-soft);
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 78ch;
+  }
+  figcaption b { color: var(--ink-soft); font-weight: 560; }
+
+  .dg-label {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    fill: currentColor;
+  }
+  .dg-title { font-size: 13px; font-weight: 600; fill: var(--ink); }
+  .dg-note { font-size: 11px; fill: var(--muted); }
+  .dg-accent { fill: var(--accent); }
+  .dg-bad { fill: var(--bad); }
+  .dg-good { fill: var(--good); }
+  .dg-box { fill: var(--sunken); stroke: var(--rule); stroke-width: 1; }
+  .dg-box-accent { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; }
+  .dg-band { fill: none; stroke: var(--rule); stroke-width: 1; stroke-dasharray: 3 4; }
+  .dg-line { stroke: currentColor; stroke-width: 1.4; fill: none; }
+  .dg-line-accent { stroke: var(--accent); stroke-width: 1.8; fill: none; }
+  .dg-line-bad { stroke: var(--bad); stroke-width: 1.6; fill: none; }
+
+  /* ---- tables ---- */
+
+  .tablewrap { overflow-x: auto; margin: 24px 0 28px; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 540px;
+    font-size: 14.5px;
+  }
+  th {
+    text-align: left;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    padding: 0 16px 10px 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: bottom;
+  }
+  td {
+    padding: 13px 16px 13px 0;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+    color: var(--ink-soft);
+  }
+  td:first-child { color: var(--ink); font-weight: 540; }
+  td.num { font-variant-numeric: tabular-nums; }
+
+  /* ---- callouts ---- */
+
+  .note {
+    border-left: 2px solid var(--accent);
+    background: var(--surface);
+    padding: 16px 20px;
+    margin: 24px 0;
+    border-radius: 0 8px 8px 0;
+    font-size: 15px;
+  }
+  .note p:last-child { margin-bottom: 0; }
+  .note .lead {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 7px;
+  }
+  .note.caution { border-left-color: var(--warn); }
+  .note.caution .lead { color: var(--warn); }
+
+  /* ---- decision blocks ---- */
+
+  .decision {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 22px 24px;
+    margin: 22px 0;
+  }
+  .decision h4 {
+    font-size: 15.5px;
+    margin: 0 0 12px;
+    font-weight: 620;
+  }
+  .decision dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 9px 18px; }
+  .decision dt {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-top: 3px;
+    white-space: nowrap;
+  }
+  .decision dd { margin: 0; font-size: 14.5px; color: var(--ink-soft); }
+
+  .pill {
+    display: inline-block;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.04em;
+  }
+  .pill.chosen { background: var(--good-soft); color: var(--good); }
+  .pill.rejected { background: var(--bad-soft); color: var(--bad); }
+
+  /* ---- api list ---- */
+
+  .api { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; margin: 22px 0; }
+  .api > div { background: var(--surface); padding: 13px 18px; display: grid; grid-template-columns: 62px 1fr; gap: 16px; align-items: baseline; font-size: 14px; }
+  .api .verb {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+  }
+  .api .path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--ink); }
+  .api .desc { color: var(--muted); font-size: 13px; display: block; margin-top: 3px; font-family: system-ui, sans-serif; }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 28px;
+    margin-top: 20px;
+    font-size: 13.5px;
+    color: var(--muted);
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 0 18px 80px; }
+    header.masthead { padding-top: 48px; }
+    .decision dl { grid-template-columns: 1fr; gap: 4px 0; }
+    .decision dt { padding-top: 10px; }
+  }
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="kicker">Senior UI Engineering Case Study</p>
+  <h1>Claims Adjudication Workspace</h1>
+  <p class="standfirst">
+    A design for a claims platform that puts 20,000+ records and 1&nbsp;GB documents in front of
+    adjudicators without either one reaching the browser intact. This document covers the
+    architecture, the performance strategy, and — most importantly — where each decision stops
+    being the right one.
+  </p>
+  <div class="meta">
+    <span><b>Scope</b> &nbsp;Frontend architecture + BFF</span>
+    <span><b>Stack</b> &nbsp;Next.js 16 · React 19 · TypeScript</span>
+    <span><b>Ref</b> &nbsp;137263</span>
+  </div>
+
+  <p style="margin-top:26px">
+    <a href="https://swiss-re-claims-workspace.vercel.app/claims" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13.5px;font-weight:600;">
+      → Working prototype: swiss-re-claims-workspace.vercel.app/claims
+    </a>
+    <span style="display:block;margin-top:6px;font-size:13.5px;color:var(--muted)">
+      Everything described here is implemented and running. Sign in as any of four roles; the
+      access model, the range-streamed 2,400-page document and the cancellable split jobs are all live.
+    </span>
+  </p>
+</header>
+
+<!-- ============================================================ -->
+
+<section class="col">
+  <p class="eyebrow"><span class="tag">Context</span> The problem beneath the requirements</p>
+  <h2>Two hard problems wearing one application</h2>
+
+  <p>
+    ABC Insurance is replacing a legacy claims system. Claims arrive from mixed channels — email,
+    SFTP drops, structured feeds — and adjudicators work them in a queue, then work
+    <em>inside</em> the attached documents. That is two genuinely different engineering problems
+    sharing a URL bar:
+  </p>
+
+  <ul>
+    <li><strong>A wide-and-shallow problem.</strong> 20,000+ claims, sorted and filtered many ways,
+      where the user needs the right ten rows fast.</li>
+    <li><strong>A narrow-and-deep problem.</strong> One document of 100&nbsp;MB–1.5&nbsp;GB, where
+      the user needs page 3,412 and nothing else — and then wants to split it.</li>
+  </ul>
+
+  <p>
+    They fail differently. The grid fails by re-rendering; the document fails by exhausting memory.
+    A single strategy applied to both is how this kind of application ends up slow in two directions
+    at once, so this document treats them separately and only shares what genuinely deserves sharing.
+  </p>
+
+  <div class="note caution">
+    <span class="lead">Assumption on record</span>
+    <p>
+      The brief states document sizes as <b>100&nbsp;MB–1&nbsp;GB</b> in the Context section and
+      <b>1500&nbsp;MB–1&nbsp;GB</b> in the requirements. I have designed for the wider reading —
+      <b>up to ~1.5&nbsp;GB</b> — because every technique that survives 1.5&nbsp;GB also survives
+      100&nbsp;MB, and the reverse is not true.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+
+<section>
+  <div class="col">
+    <p class="eyebrow"><span class="tag">Arch</span> System shape</p>
+    <h2>A thin BFF, and an honest boundary</h2>
+
+    <p>
+      The evaluation criteria ask for <em>"backend API assumptions"</em> — which tells me the domain
+      services belong to another team. So this design does not build a backend; it defines the
+      contract it consumes, and inserts one deliberate layer of its own: a
+      <strong>Backend-For-Frontend</strong>.
+    </p>
+
+    <p>The BFF exists for three reasons, and would be deleted if none of them held:</p>
+
+    <ul>
+      <li>The browser must never hold a downstream service token. The session is an
+        <code>httpOnly</code> cookie; token exchange happens server-side.</li>
+      <li>Role must be projected into <em>both</em> the data query and the capability flags the UI
+        reads — from one policy evaluation, so they cannot drift apart.</li>
+      <li>A 1.5&nbsp;GB document needs a range proxy that streams and never buffers.</li>
+    </ul>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 1000 470" role="img" aria-label="Three-layer architecture: browser client islands talk only to the BFF over an httpOnly session cookie; the BFF evaluates policy once and fans out to Postgres, R2 object storage, and a document worker.">
+      <defs>
+        <marker id="a1" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="8" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,0 10,4 0,8" fill="currentColor" />
+        </marker>
+        <marker id="a1v" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="8" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,0 10,4 0,8" fill="var(--accent)" />
+        </marker>
+      </defs>
+
+      <!-- band labels -->
+      <text x="0" y="16" class="dg-label dg-note">BROWSER</text>
+      <rect x="0" y="26" width="1000" height="86" rx="7" class="dg-band" />
+
+      <rect x="14" y="42" width="196" height="54" rx="6" class="dg-box" />
+      <text x="112" y="64" class="dg-label dg-title" text-anchor="middle">App shell</text>
+      <text x="112" y="82" class="dg-label dg-note" text-anchor="middle">RSC · layout, session</text>
+
+      <rect x="228" y="42" width="196" height="54" rx="6" class="dg-box" />
+      <text x="326" y="64" class="dg-label dg-title" text-anchor="middle">Claims grid</text>
+      <text x="326" y="82" class="dg-label dg-note" text-anchor="middle">client island</text>
+
+      <rect x="442" y="42" width="196" height="54" rx="6" class="dg-box" />
+      <text x="540" y="64" class="dg-label dg-title" text-anchor="middle">Doc workspace</text>
+      <text x="540" y="82" class="dg-label dg-note" text-anchor="middle">client island</text>
+
+      <rect x="656" y="42" width="196" height="54" rx="6" class="dg-box" />
+      <text x="754" y="64" class="dg-label dg-title" text-anchor="middle">PDF worker</text>
+      <text x="754" y="82" class="dg-label dg-note" text-anchor="middle">off main thread</text>
+
+      <!-- browser -> bff -->
+      <line x1="326" y1="112" x2="326" y2="176" class="dg-line-accent" marker-end="url(#a1v)" />
+      <line x1="540" y1="112" x2="540" y2="176" class="dg-line-accent" marker-end="url(#a1v)" />
+      <text x="352" y="140" class="dg-label dg-accent">httpOnly session cookie</text>
+      <text x="352" y="158" class="dg-label dg-note">no bearer token in JS</text>
+
+      <!-- BFF band -->
+      <text x="0" y="196" class="dg-label dg-note">BFF — NEXT.JS ROUTE HANDLERS</text>
+      <rect x="0" y="206" width="1000" height="96" rx="7" class="dg-box-accent" />
+
+      <rect x="14" y="224" width="216" height="60" rx="6" class="dg-box" />
+      <text x="122" y="248" class="dg-label dg-title" text-anchor="middle">Policy evaluation</text>
+      <text x="122" y="266" class="dg-label dg-note" text-anchor="middle">one pass → filter + caps</text>
+
+      <rect x="248" y="224" width="216" height="60" rx="6" class="dg-box" />
+      <text x="356" y="248" class="dg-label dg-title" text-anchor="middle">Grid query API</text>
+      <text x="356" y="266" class="dg-label dg-note" text-anchor="middle">keyset page + count</text>
+
+      <rect x="482" y="224" width="216" height="60" rx="6" class="dg-box" />
+      <text x="590" y="248" class="dg-label dg-title" text-anchor="middle">Range proxy</text>
+      <text x="590" y="266" class="dg-label dg-note" text-anchor="middle">streams, never buffers</text>
+
+      <rect x="716" y="224" width="270" height="60" rx="6" class="dg-box" />
+      <text x="851" y="248" class="dg-label dg-title" text-anchor="middle">Job API + SSE</text>
+      <text x="851" y="266" class="dg-label dg-note" text-anchor="middle">submit · progress · cancel</text>
+
+      <!-- bff -> stores -->
+      <line x1="356" y1="302" x2="356" y2="368" class="dg-line" marker-end="url(#a1)" />
+      <text x="368" y="332" class="dg-label">SQL · row filter applied here</text>
+
+      <line x1="590" y1="302" x2="590" y2="368" class="dg-line" marker-end="url(#a1)" />
+      <text x="602" y="350" class="dg-label">signed Range GET</text>
+
+      <line x1="851" y1="302" x2="851" y2="368" class="dg-line" marker-end="url(#a1)" />
+
+      <!-- stores band -->
+      <text x="0" y="388" class="dg-label dg-note">ASSUMED DOMAIN SERVICES — CONTRACT DEFINED, NOT BUILT</text>
+      <rect x="0" y="398" width="1000" height="64" rx="7" class="dg-band" />
+
+      <rect x="248" y="410" width="216" height="42" rx="6" class="dg-box" />
+      <text x="356" y="436" class="dg-label dg-title" text-anchor="middle">Postgres</text>
+
+      <rect x="482" y="410" width="216" height="42" rx="6" class="dg-box" />
+      <text x="590" y="436" class="dg-label dg-title" text-anchor="middle">Object store (R2)</text>
+
+      <rect x="716" y="410" width="270" height="42" rx="6" class="dg-box" />
+      <text x="851" y="436" class="dg-label dg-title" text-anchor="middle">Document worker</text>
+
+      <!-- worker -> store -->
+      <line x1="716" y1="431" x2="702" y2="431" class="dg-line" marker-end="url(#a1)" />
+      <text x="600" y="472" class="dg-label dg-note">worker writes new version — copy-on-write</text>
+    </svg>
+    <figcaption>
+      <b>Every client request terminates at the BFF.</b> The two client islands hold no credentials;
+      the session cookie is the only thing that crosses. Policy is evaluated once per request and
+      produces two outputs from the same decision — the SQL row filter and the capability flags the
+      UI renders from — which is what stops the button state and the data scope from drifting apart.
+    </figcaption>
+  </figure>
+
+  <div class="col">
+    <h3>Why Next.js, and what it is <em>not</em> doing</h3>
+    <p>
+      Next.js here is a host for the BFF, not an endorsement of rendering everything on the server.
+      Route Handlers give real HTTP endpoints, middleware gives edge session checks, and
+      <code>ReadableStream</code> responses give SSE for job progress — all in one deployable unit.
+    </p>
+    <p>
+      <strong>The grid is deliberately not a Server Component.</strong> Server-rendering a surface
+      with client-side sort, filter and virtualised scroll turns every interaction into a network
+      round-trip and a payload. RSC covers the shell, the layout and session bootstrap. Knowing
+      where to stop using the framework's headline feature is the decision, not an omission.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+
+<section>
+  <div class="col">
+    <p class="eyebrow"><span class="tag">FR-2</span> Role-based access</p>
+    <h2>The hidden button is not the control</h2>
+
+    <p>
+      The brief is explicit: <em>backend as source of truth; frontend for UX.</em> The distinction
+      matters because the two mechanisms look identical when everything works and only diverge under
+      attack.
+    </p>
+
+    <p>
+      Each response carries a <code>capabilities</code> object alongside the data — derived from the
+      same policy evaluation that built the row filter. The UI reads it to disable or hide actions.
+      That is a <em>courtesy</em>: it stops adjudicators clicking things that will fail. It is not
+      the boundary.
+    </p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 1000 330" role="img" aria-label="Two request paths: a normal UI click and a forged request with the button removed. Both reach the same policy check at the BFF; the forged one is rejected with 403 before touching the database.">
+      <defs>
+        <marker id="a2" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="8" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,0 10,4 0,8" fill="currentColor" />
+        </marker>
+        <marker id="a2b" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="8" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,0 10,4 0,8" fill="var(--bad)" />
+        </marker>
+        <marker id="a2g" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="8" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,0 10,4 0,8" fill="var(--good)" />
+        </marker>
+      </defs>
+
+      <!-- path A -->
+      <rect x="0" y="34" width="212" height="58" rx="6" class="dg-box" />
+      <text x="106" y="58" class="dg-label dg-title" text-anchor="middle">Supervisor clicks</text>
+      <text x="106" y="76" class="dg-label dg-note" text-anchor="middle">Delete — button enabled</text>
+
+      <line x1="212" y1="63" x2="366" y2="63" class="dg-line" marker-end="url(#a2)" />
+      <text x="222" y="52" class="dg-label dg-note">DELETE /api/claims/8814</text>
+
+      <!-- path B -->
+      <rect x="0" y="216" width="212" height="58" rx="6" class="dg-box" />
+      <text x="106" y="240" class="dg-label dg-title" text-anchor="middle">Viewer, via console</text>
+      <text x="106" y="258" class="dg-label dg-note" text-anchor="middle">button was never rendered</text>
+
+      <line x1="212" y1="245" x2="366" y2="245" class="dg-line-bad" marker-end="url(#a2b)" />
+      <text x="222" y="234" class="dg-label dg-bad">same endpoint, forged</text>
+
+      <!-- the gate -->
+      <rect x="366" y="112" width="212" height="84" rx="7" class="dg-box-accent" />
+      <text x="472" y="142" class="dg-label dg-title" text-anchor="middle">Policy check</text>
+      <text x="472" y="160" class="dg-label dg-note" text-anchor="middle">role × record ownership</text>
+      <text x="472" y="180" class="dg-label dg-note" text-anchor="middle">BFF — the only gate</text>
+
+      <path d="M366 63 Q 300 63 300 112 L 366 112" class="dg-line" fill="none" marker-end="url(#a2)" />
+      <path d="M366 245 Q 300 245 300 196 L 366 196" class="dg-line-bad" fill="none" marker-end="url(#a2b)" />
+
+      <!-- outcomes -->
+      <line x1="578" y1="140" x2="736" y2="86" class="dg-line" stroke="var(--good)" marker-end="url(#a2g)" />
+      <rect x="740" y="52" width="240" height="58" rx="6" class="dg-box" />
+      <text x="860" y="76" class="dg-label dg-title" text-anchor="middle">200 · row deleted</text>
+      <text x="860" y="94" class="dg-label dg-note" text-anchor="middle">audit entry written</text>
+
+      <line x1="578" y1="168" x2="736" y2="222" class="dg-line-bad" marker-end="url(#a2b)" />
+      <rect x="740" y="192" width="240" height="58" rx="6" class="dg-box" />
+      <text x="860" y="216" class="dg-label dg-title" text-anchor="middle">403 · rejected</text>
+      <text x="860" y="234" class="dg-label dg-note" text-anchor="middle">database never touched</text>
+
+      <text x="366" y="312" class="dg-label dg-note">Removing the UI check changes nothing about the outcome — that is the test.</text>
+    </svg>
+    <figcaption>
+      <b>Both paths converge on one check.</b> The forged request is indistinguishable from the
+      legitimate one at the network layer, which is exactly why the frontend cannot be the gate.
+      In the prototype this is demonstrable: disable the client-side capability check and the
+      Viewer's delete still returns 403.
+    </figcaption>
+  </figure>
+
+  <div class="col">
+    <h3>Row scope, not just action scope</h3>
+    <p>
+      RBAC here has two halves and only one of them is visible. <strong>Action scope</strong>
+      controls Edit / Delete / Assign. <strong>Row scope</strong> controls which claims exist at all —
+      an adjudicator sees their assigned queue, a supervisor sees their team's, an auditor sees
+      everything read-only. Row scope is a <code>WHERE</code> clause added by the BFF and never sent
+      by the client, so a tampered filter parameter can only ever narrow the set, never widen it.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+
+<section>
+  <div class="col">
+    <p class="eyebrow"><span class="tag">FR-1</span> The 20,000-row grid</p>
+    <h2>Pagination and virtualisation are not rivals</h2>
+
+    <p>
+      The brief asks us to use pagination <em>or justify an alternative</em>. The provided Figma
+      settles it: the footer reads <code>Showing data 1 to 8 of 256K entries</code> with numbered
+      pages. The client's own design standard specifies paginated navigation with a total count.
+      Overriding that would be overruling their UX team, which is the wrong instinct for this role.
+    </p>
+
+    <p>
+      But the two techniques answer different questions, and treating them as alternatives is the
+      actual mistake:
+    </p>
+
+    <ul>
+      <li><strong>Pagination is a transport decision</strong> — how many rows cross the network.</li>
+      <li><strong>Virtualisation is a render decision</strong> — how many rows exist in the DOM.</li>
+    </ul>
+
+    <p>They compose. Here is what each hop actually removes:</p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 1000 300" role="img" aria-label="Three-stage funnel: 256,481 rows in Postgres, 50 rows crossing the network per page, 14 row elements mounted in the DOM. Sorting and filtering happen at the first hop, not in the browser.">
+      <defs>
+        <marker id="a3" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="8" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,0 10,4 0,8" fill="currentColor" />
+        </marker>
+      </defs>
+
+      <rect x="0" y="60" width="250" height="130" rx="7" class="dg-box" />
+      <text x="125" y="96" class="dg-label dg-note" text-anchor="middle">POSTGRES</text>
+      <text x="125" y="132" class="dg-title" text-anchor="middle" style="font-size:23px; font-family:ui-monospace,Menlo,monospace">256,481</text>
+      <text x="125" y="154" class="dg-label dg-note" text-anchor="middle">rows, indexed</text>
+      <text x="125" y="174" class="dg-label dg-note" text-anchor="middle">claim_status, assignee_id, updated_at</text>
+
+      <line x1="250" y1="125" x2="368" y2="125" class="dg-line-accent" marker-end="url(#a1v)" />
+      <text x="256" y="112" class="dg-label dg-accent">sort + filter</text>
+      <text x="256" y="150" class="dg-label dg-note">keyset seek</text>
+
+      <rect x="374" y="60" width="250" height="130" rx="7" class="dg-box" />
+      <text x="499" y="96" class="dg-label dg-note" text-anchor="middle">OVER THE WIRE</text>
+      <text x="499" y="132" class="dg-title" text-anchor="middle" style="font-size:23px; font-family:ui-monospace,Menlo,monospace">50</text>
+      <text x="499" y="154" class="dg-label dg-note" text-anchor="middle">rows · ~28 KB gzipped</text>
+      <text x="499" y="174" class="dg-label dg-note" text-anchor="middle">+ capabilities + total</text>
+
+      <line x1="624" y1="125" x2="742" y2="125" class="dg-line-accent" marker-end="url(#a1v)" />
+      <text x="630" y="112" class="dg-label dg-accent">virtualise</text>
+      <text x="630" y="150" class="dg-label dg-note">window + overscan</text>
+
+      <rect x="748" y="60" width="250" height="130" rx="7" class="dg-box" />
+      <text x="873" y="96" class="dg-label dg-note" text-anchor="middle">MOUNTED IN DOM</text>
+      <text x="873" y="132" class="dg-title" text-anchor="middle" style="font-size:23px; font-family:ui-monospace,Menlo,monospace">14</text>
+      <text x="873" y="154" class="dg-label dg-note" text-anchor="middle">row elements, recycled</text>
+      <text x="873" y="174" class="dg-label dg-note" text-anchor="middle">constant regardless of page size</text>
+
+      <line x1="0" y1="232" x2="1000" y2="232" stroke="var(--rule)" stroke-width="1" />
+      <text x="0" y="256" class="dg-label dg-note">Sorting and filtering never run in the browser — they run where the index is.</text>
+      <text x="0" y="278" class="dg-label dg-note">Scaling record count changes the left number only. The other two are already bounded.</text>
+    </svg>
+    <figcaption>
+      <b>The right-hand number is the one that protects the frame budget.</b> It stays at 14 whether
+      the page holds 50 rows or 500, and whether the table holds 20,000 claims or 2 million — which
+      is what makes the design survive the growth the brief asks about.
+    </figcaption>
+  </figure>
+
+  <div class="col">
+    <h3>The count problem the Figma creates</h3>
+    <p>
+      Numbered pagination requires a total. <code>COUNT(*)</code> across 256K filtered rows on every
+      keystroke is the query that quietly takes the database down. And <code>OFFSET 320000</code> is
+      fine at page 2 and pathological at page 6,400, because Postgres walks every skipped row.
+    </p>
+    <p>So the count is tiered rather than uniform:</p>
+    <ul>
+      <li><strong>Up to 50,000 rows the count is exact.</strong> At that size <code>COUNT(*)</code>
+        against the filter index is single-digit milliseconds — cheap enough to run on every
+        change, and worth running because the number is then unarguable.</li>
+      <li><strong>Beyond it, the planner's row estimate takes over</strong>, and the interface
+        prefixes the number with <code>~</code> so an estimate is never passed off as exact.</li>
+    </ul>
+    <p>
+      The threshold started far lower and was raised after using it. Two problems surfaced, and
+      both are worth stating because they are the kind that only appear in the running product: an
+      estimate <em>does not move when a row is deleted</em> until the table is analysed, so the
+      total contradicted the action the user had just taken; and an <em>"approx."</em> label beside
+      a figure that happened to be exactly right read as though the underlying data were
+      unreliable.
+    </p>
+    <p>
+      Both are failures of reaching for a scalability technique before the scale justified it. The
+      technique is still correct at 256K rows — where the Figma's own footer places this screen —
+      but correctness at the design's scale is not a reason to pay its cost at the current one.
+    </p>
+
+    <h3>Keeping re-renders honest</h3>
+    <p>
+      The grid uses no table library. With sorting, filtering and pagination all server-side,
+      every row model such a library exists to provide is bypassed — what remains is a column
+      config and a cell map, and owning those directly is what makes the render boundary
+      controllable. A dependency you route around is a liability rather than an asset. The rules
+      the grid holds to:
+    </p>
+    <ul>
+      <li>Row identity comes from a stable server ID, never an array index, so recycling does not
+        remount.</li>
+      <li>Each row is memoised on the values that change its output, so scrolling past one row does
+        not re-render the rows still on screen. No React Context is used anywhere near the grid —
+        Context wakes every consumer on every change, which is the problem, not the fix.</li>
+      <li>Filter input is debounced into the query key; the previous page stays mounted via
+        placeholder data so pagination never flashes empty.</li>
+      <li>Column definitions and cell renderers are declared outside the component so they are not
+        reallocated per render.</li>
+    </ul>
+  </div>
+
+  <div class="note">
+    <span class="lead">Design system gap</span>
+    <p>
+      The Figma has <b>no row actions column</b> — but the brief requires Edit, Delete and Assign,
+      each role-gated. We extend the system rather than improvise: an actions column following the
+      existing 14px/#292D32 cell rhythm, a disabled state at 38% opacity matching the export's own
+      <code>fill-opacity</code> convention, and a tooltip naming the missing permission. Flagged as a
+      designer conversation, not resolved silently.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+
+<section>
+  <div class="col">
+    <p class="eyebrow"><span class="tag">FR-3</span> Opening a 1.5 GB document</p>
+    <h2>The bytes that never move</h2>
+
+    <p>
+      This requirement has exactly one insight behind it, and everything else follows:
+      <strong>the document must never arrive in the browser.</strong> A 1&nbsp;GB
+      <code>ArrayBuffer</code> exceeds what a tab can hold, and even if it fit, the user waited
+      minutes to read one page.
+    </p>
+
+    <p>
+      So selecting a row does not fetch a document. It fetches a <em>manifest</em> — page count,
+      per-page dimensions, byte offsets, thumbnail URLs — a few tens of kilobytes describing a
+      1.5&nbsp;GB object. The workspace renders from the manifest immediately, then pulls only the
+      byte ranges for pages actually on screen.
+    </p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 1000 420" role="img" aria-label="A 1.5 GB PDF stays in object storage. The browser fetches a 40 KB manifest, then 64 KB byte ranges for the visible page only. The full-file download path is drawn crossed out.">
+      <defs>
+        <marker id="a4" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="8" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,0 10,4 0,8" fill="currentColor" />
+        </marker>
+        <marker id="a4v" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="8" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,0 10,4 0,8" fill="var(--accent)" />
+        </marker>
+      </defs>
+
+      <!-- storage -->
+      <rect x="722" y="120" width="276" height="150" rx="7" class="dg-box" />
+      <text x="860" y="152" class="dg-label dg-note" text-anchor="middle">OBJECT STORE</text>
+      <text x="860" y="192" class="dg-title" text-anchor="middle" style="font-size:26px; font-family:ui-monospace,Menlo,monospace">1.5 GB</text>
+      <text x="860" y="216" class="dg-label dg-note" text-anchor="middle">linearised PDF · 4,180 pages</text>
+      <text x="860" y="240" class="dg-label dg-note" text-anchor="middle">Accept-Ranges: bytes</text>
+
+      <!-- browser -->
+      <rect x="0" y="120" width="248" height="150" rx="7" class="dg-box" />
+      <text x="124" y="152" class="dg-label dg-note" text-anchor="middle">WORKSPACE</text>
+      <text x="124" y="182" class="dg-label dg-title" text-anchor="middle">~5 canvases mounted</text>
+      <text x="124" y="204" class="dg-label dg-note" text-anchor="middle">page 3,412 in view</text>
+      <text x="124" y="232" class="dg-label dg-note" text-anchor="middle">render tasks cancelled</text>
+      <text x="124" y="250" class="dg-label dg-note" text-anchor="middle">on scroll-away</text>
+
+      <!-- manifest hop -->
+      <line x1="248" y1="152" x2="716" y2="152" class="dg-line-accent" marker-end="url(#a1v)" />
+      <text x="300" y="140" class="dg-label dg-accent">1 · manifest — 40 KB</text>
+      <text x="300" y="122" class="dg-label dg-note">page count, offsets, thumbnails · renders the shell instantly</text>
+
+      <!-- range hop -->
+      <line x1="248" y1="222" x2="716" y2="222" class="dg-line-accent" marker-end="url(#a1v)" />
+      <text x="300" y="210" class="dg-label dg-accent">2 · Range: bytes=891242496-891308032</text>
+      <text x="300" y="244" class="dg-label dg-note">64 KB chunk · only the page being read</text>
+
+      <!-- crossed out full download -->
+      <line x1="248" y1="330" x2="716" y2="330" class="dg-line-bad" stroke-dasharray="5 5" />
+      <line x1="440" y1="308" x2="524" y2="352" class="dg-line-bad" stroke-width="2.2" />
+      <line x1="524" y1="308" x2="440" y2="352" class="dg-line-bad" stroke-width="2.2" />
+      <text x="248" y="376" class="dg-label dg-bad">full-file GET — never issued</text>
+      <text x="248" y="396" class="dg-label dg-note">this is the path PDF.js takes by default; disableAutoFetch closes it</text>
+
+      <line x1="0" y1="60" x2="1000" y2="60" stroke="var(--rule)" stroke-width="1" />
+      <text x="0" y="42" class="dg-label dg-note">TOTAL TRANSFERRED TO OPEN A 1.5 GB DOCUMENT AT PAGE 3,412 — ABOUT 104 KB</text>
+    </svg>
+    <figcaption>
+      <b>The crossed-out arrow is the whole point.</b> PDF.js background-fetches the entire file
+      unless <code>disableAutoFetch</code> is set — a single option separating a working viewer from
+      a dead tab. Range support requires <code>Accept-Ranges</code> and a CORS policy exposing
+      <code>Content-Range</code>, which is why the object store must be one whose headers we control.
+    </figcaption>
+  </figure>
+
+  <div class="col">
+    <h3>Getting to the workspace without a blank screen</h3>
+    <p>
+      Perceived performance is a stated requirement, so the transition is staged rather than
+      awaited. Clicking a row does not block on anything:
+    </p>
+    <ol>
+      <li>The workspace opens immediately with claim metadata already held in the grid's cache —
+        no spinner on data we have.</li>
+      <li>The manifest resolves and the page rail fills with skeleton tiles at correct aspect ratios,
+        so the scrollbar is accurate before a single page has rendered.</li>
+      <li>Thumbnails stream in; the first full page rasterises.</li>
+      <li>The manifest is prefetched on row hover, so the common case has it before the click.</li>
+    </ol>
+
+    <h3>Keeping the main thread clear</h3>
+    <p>
+      Parsing runs in a Web Worker — non-negotiable, since PDF parsing on the main thread stalls
+      scrolling on exactly the surface being scrolled. On top of that: at most five canvases are
+      mounted with recycling, <code>renderTask.cancel()</code> fires when a page leaves the
+      viewport, rendered pages are cached in IndexedDB keyed by document version and zoom bucket,
+      and zoom is applied as a CSS transform first with re-rasterisation debounced behind it.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+
+<section>
+  <div class="col">
+    <p class="eyebrow"><span class="tag">FR-4</span> Document operations</p>
+    <h2>Annotations are cheap. Splits are not.</h2>
+
+    <p>
+      The brief groups edit, split, merge, delete, comments and annotations together. They should
+      not be built together, because they differ on the only axis that matters:
+      <strong>whether the operation touches the document bytes.</strong>
+    </p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>Operation</th><th>Touches bytes</th><th>Execution</th><th>Update model</th><th>Failure cost</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Comment on page</td><td>No</td><td>Row in Postgres</td><td>Optimistic</td><td>Toast + rollback</td></tr>
+        <tr><td>Annotation (highlight, box)</td><td>No</td><td>Row in Postgres</td><td>Optimistic</td><td>Toast + rollback</td></tr>
+        <tr><td>Reorder / delete page</td><td>Manifest only</td><td>Version bump</td><td>Optimistic, confirmed</td><td>Re-fetch manifest</td></tr>
+        <tr><td>Split document</td><td>Yes</td><td>Async worker job</td><td>Pessimistic</td><td>Job fails, source intact</td></tr>
+        <tr><td>Merge documents</td><td>Yes</td><td>Async worker job</td><td>Pessimistic</td><td>Job fails, sources intact</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="col">
+    <p>
+      Annotations never touch the PDF. They are rows anchored to
+      <code>(documentId, version, pageIndex, x, y, w, h)</code> in normalised coordinates, rendered
+      as an overlay above the canvas. This buys three things: the document binary stays immutable,
+      annotations survive a re-split by remapping page identity, and multiple adjudicators can
+      annotate concurrently without fighting over a file. Burning them into the PDF happens once, at
+      export, as its own job.
+    </p>
+
+    <h3>Split and merge as jobs, not requests</h3>
+    <p>
+      Splitting a 1.5&nbsp;GB PDF takes far longer than any sane HTTP timeout. The client submits an
+      <em>intent</em> — a page manifest, not bytes — and receives a job ID. Everything after that is
+      progress reporting.
+    </p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 1000 330" role="img" aria-label="Job lifecycle state machine: submitted with an idempotency key, queued, running with SSE progress, then either committed as a new version or failed with the source document untouched. Cancel is available while running.">
+      <defs>
+        <marker id="a5" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="8" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,0 10,4 0,8" fill="currentColor" />
+        </marker>
+        <marker id="a5g" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="8" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,0 10,4 0,8" fill="var(--good)" />
+        </marker>
+        <marker id="a5b" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="8" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,0 10,4 0,8" fill="var(--bad)" />
+        </marker>
+      </defs>
+
+      <rect x="0" y="96" width="176" height="58" rx="6" class="dg-box" />
+      <text x="88" y="120" class="dg-label dg-title" text-anchor="middle">Submitted</text>
+      <text x="88" y="138" class="dg-label dg-note" text-anchor="middle">idempotency key</text>
+
+      <line x1="176" y1="125" x2="238" y2="125" class="dg-line" marker-end="url(#a5)" />
+
+      <rect x="244" y="96" width="176" height="58" rx="6" class="dg-box" />
+      <text x="332" y="120" class="dg-label dg-title" text-anchor="middle">Queued</text>
+      <text x="332" y="138" class="dg-label dg-note" text-anchor="middle">position shown to user</text>
+
+      <line x1="420" y1="125" x2="482" y2="125" class="dg-line" marker-end="url(#a5)" />
+
+      <rect x="488" y="96" width="176" height="58" rx="6" class="dg-box-accent" />
+      <text x="576" y="120" class="dg-label dg-title" text-anchor="middle">Running</text>
+      <text x="576" y="138" class="dg-label dg-note" text-anchor="middle">SSE · pages/sec + ETA</text>
+
+      <line x1="664" y1="112" x2="778" y2="66" class="dg-line" stroke="var(--good)" marker-end="url(#a5g)" />
+      <rect x="784" y="34" width="216" height="58" rx="6" class="dg-box" />
+      <text x="892" y="58" class="dg-label dg-title" text-anchor="middle">Committed</text>
+      <text x="892" y="76" class="dg-label dg-note" text-anchor="middle">new version, atomic swap</text>
+
+      <line x1="664" y1="140" x2="778" y2="192" class="dg-line-bad" marker-end="url(#a5b)" />
+      <rect x="784" y="164" width="216" height="58" rx="6" class="dg-box" />
+      <text x="892" y="188" class="dg-label dg-title" text-anchor="middle">Failed</text>
+      <text x="892" y="206" class="dg-label dg-note" text-anchor="middle">source untouched · retry safe</text>
+
+      <path d="M576 154 L576 236 L332 236 L332 160" class="dg-line" stroke-dasharray="4 4" marker-end="url(#a5)" />
+      <text x="360" y="256" class="dg-label dg-note">cancel — worker polls the flag, releases partial output</text>
+
+      <line x1="0" y1="292" x2="1000" y2="292" stroke="var(--rule)" stroke-width="1" />
+      <text x="0" y="316" class="dg-label dg-note">Retry re-sends the same idempotency key — a duplicate submission returns the original job, it does not split twice.</text>
+    </svg>
+    <figcaption>
+      <b>Copy-on-write is what makes partial failure survivable.</b> The worker writes a new document
+      version and swaps the pointer only on success, so a job that dies at 70% leaves the original
+      exactly as it was. That is the brief's <em>"consistent document state"</em> and
+      <em>"handle partial failures gracefully"</em> in one mechanism rather than two.
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ============================================================ -->
+
+<section class="col">
+  <p class="eyebrow"><span class="tag">API</span> Contract with the domain services</p>
+  <h2>What the BFF assumes exists</h2>
+
+  <div class="api">
+    <div><span class="verb">GET</span><span><span class="path">/api/claims</span><span class="desc">cursor, limit, sort, filters → rows + capabilities + estimated total</span></span></div>
+    <div><span class="verb">PATCH</span><span><span class="path">/api/claims/:id</span><span class="desc">field-level edit; validated server-side against the same schema the form uses</span></span></div>
+    <div><span class="verb">POST</span><span><span class="path">/api/claims/:id/assign</span><span class="desc">reassign; rejected unless policy grants assign on that record</span></span></div>
+    <div><span class="verb">GET</span><span><span class="path">/api/documents/:id/manifest</span><span class="desc">page count, dimensions, byte offsets, thumbnail URLs, current version</span></span></div>
+    <div><span class="verb">GET</span><span><span class="path">/api/documents/:id/stream</span><span class="desc">range proxy; forwards Range, returns 206, never buffers</span></span></div>
+    <div><span class="verb">GET</span><span><span class="path">/api/documents/:id/annotations</span><span class="desc">page-scoped, normalised coordinates</span></span></div>
+    <div><span class="verb">POST</span><span><span class="path">/api/documents/:id/operations</span><span class="desc">split / merge / delete intent + idempotency key → job ID</span></span></div>
+    <div><span class="verb">GET</span><span><span class="path">/api/jobs/:id/events</span><span class="desc">SSE stream — progress, ETA, terminal state</span></span></div>
+    <div><span class="verb">DELETE</span><span><span class="path">/api/jobs/:id</span><span class="desc">cooperative cancel</span></span></div>
+  </div>
+
+  <p>
+    Request and response shapes are declared once as schemas and shared both ways — the BFF validates
+    inbound payloads against them at runtime, and the client derives its types from the same
+    definitions. Validation lives at the boundary, not in the form; the form's rules are a copy for
+    responsiveness, and the server's copy is the one that counts.
+  </p>
+</section>
+
+<!-- ============================================================ -->
+
+<section class="col">
+  <p class="eyebrow"><span class="tag">Trade-offs</span> Decisions and their costs</p>
+  <h2>What was chosen, and what it costs</h2>
+
+  <div class="decision">
+    <h4>Pagination <span class="pill chosen">chosen</span> over infinite scroll <span class="pill rejected">rejected</span></h4>
+    <dl>
+      <dt>Because</dt><dd>The client's design standard specifies numbered pages and a total. Adjudicators also cite claim positions to each other — "page 4 of the unassigned queue" is a real conversation that infinite scroll destroys.</dd>
+      <dt>Costs</dt><dd>A total count must be maintained, which forces the estimated-count compromise above.</dd>
+      <dt>Revisit if</dt><dd>The queue becomes a feed rather than a worklist, or mobile becomes primary.</dd>
+    </dl>
+  </div>
+
+  <div class="decision">
+    <h4>Server-side sort and filter <span class="pill chosen">chosen</span> over client-side <span class="pill rejected">rejected</span></h4>
+    <dl>
+      <dt>Because</dt><dd>20,000 rows would fit in memory today — roughly 8 MB of JSON. 200,000 will not, and row-level RBAC cannot be enforced on a dataset the client already holds.</dd>
+      <dt>Costs</dt><dd>Every filter keystroke is a network round-trip; mitigated by debouncing and cached pages.</dd>
+      <dt>Revisit if</dt><dd>A view is provably bounded and non-sensitive — then a one-shot fetch is faster and simpler.</dd>
+    </dl>
+  </div>
+
+  <div class="decision">
+    <h4>Optimistic annotations <span class="pill chosen">chosen</span> · pessimistic splits <span class="pill chosen">chosen</span></h4>
+    <dl>
+      <dt>Because</dt><dd>The correct model follows the cost of being wrong. A failed comment is a toast and a rollback. A half-applied split on a 1.5 GB legal document is a corrupted claim file.</dd>
+      <dt>Costs</dt><dd>Two interaction models in one workspace, which must be taught through UI language — instant for annotations, an explicit progress panel for operations.</dd>
+      <dt>Revisit if</dt><dd>Never for splits. Destructive, expensive, irreversible operations do not get optimistic UI.</dd>
+    </dl>
+  </div>
+
+  <div class="decision">
+    <h4>Server-side page rasterisation <span class="pill chosen">chosen</span> over pure client parsing <span class="pill rejected">rejected</span></h4>
+    <dl>
+      <dt>Because</dt><dd>Thumbnails for 4,000 pages cannot be produced in the browser at acceptable cost, and rasterising once server-side serves every user who opens that document.</dd>
+      <dt>Costs</dt><dd>Rasterisation infrastructure and a cache to maintain; first-open latency for a never-seen document.</dd>
+      <dt>Revisit if</dt><dd>Documents are small and rarely shared — then client-only rendering removes a whole service.</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+
+<section class="col">
+  <p class="eyebrow"><span class="tag">Limits</span> Where this design ends</p>
+  <h2>What I would change with more than a weekend</h2>
+
+  <p>
+    Stating the boundary is part of the design. These are the places where the prototype and the
+    production architecture genuinely diverge:
+  </p>
+
+  <ul>
+    <li><strong>The document worker cannot be serverless.</strong> Splitting a 1.5 GB PDF exceeds
+      serverless memory and timeout limits, and libraries that load the whole document into memory
+      cannot be used at that size. Production needs a long-running container doing streaming
+      page-range extraction, writing output via multipart upload. The prototype runs the real job
+      protocol — idempotency, progress, cancel, copy-on-write — against documents small enough for
+      the function to handle. The protocol is the part that has to be right; the executor swaps out.</li>
+
+    <li><strong>Estimated counts should become a maintained aggregate.</strong> A materialised count
+      per common filter combination, refreshed by trigger, replaces the TTL cache once query
+      patterns are known from real usage.</li>
+
+    <li><strong>Annotation concurrency is last-write-wins.</strong> Adequate for one adjudicator per
+      claim, which matches how the work is actually assigned. Genuine multi-user editing on the same
+      page would need CRDTs or server-ordered operations, and I would want evidence that it happens
+      before paying for it.</li>
+
+    <li><strong>Policy is currently code.</strong> Roles and capability rules live in a typed module
+      in the BFF. At scale that belongs in a policy service so authorisation changes do not require
+      a frontend deploy — but introducing that layer before the rules have stabilised makes them
+      harder to read, not easier.</li>
+
+    <li><strong>Accessibility is built in, not audited.</strong> Semantic table markup, keyboard
+      navigation through the virtualised grid, focus management on the grid-to-workspace transition,
+      live-region announcements for job progress. A screen-reader pass on the annotation layer —
+      the genuinely hard surface — is outstanding.</li>
+  </ul>
+</section>
+
+<footer class="col">
+  <p>
+    Prepared for the Swiss Re Senior Application Engineer (UI Developer) case study, reference 137263.
+    Diagrams and the accompanying prototype apply the design tokens supplied in the CRM Dashboard
+    Figma export.
+  </p>
+</footer>
+
+</div>

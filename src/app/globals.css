@@ -1,0 +1,75 @@
+@import 'tailwindcss';
+
+/*
+ * Tokens lifted from the supplied CRM Dashboard Figma export.
+ * Values are the exact hexes in the SVG, not eyeballed approximations.
+ */
+@theme {
+  --color-brand: #5932ea;
+  --color-brand-deep: #4925e9;
+  --color-brand-soft: #f2effe;
+  --color-promo-from: #eaabf0;
+  --color-promo-to: #4623e9;
+
+  --color-ink: #292d32;
+  --color-ink-soft: #404b52;
+  --color-nav: #9197b3;
+  --color-muted: #b5b7c0;
+  --color-faint: #acacac;
+
+  --color-line: #eeeeee;
+  --color-line-soft: #f0f0f0;
+  --color-canvas: #fafbff;
+  --color-field: #f9fbff;
+  --color-idle: #f5f5f5;
+
+  --color-ok: #00ac4f;
+  --color-ok-ink: #008767;
+  --color-ok-mid: #16c098;
+  --color-ok-from: #d3ffe7;
+  --color-ok-to: #effff6;
+
+  --color-bad: #df0404;
+  --color-bad-soft: #ffc5c5;
+  --color-bad-deep: #d0004b;
+
+  --radius-card: 30px;
+  --radius-field: 10px;
+  --radius-chip: 6px;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+html,
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Grid body scrolls independently of the page; keep its scrollbar unobtrusive. */
+.scroll-slim {
+  scrollbar-width: thin;
+  scrollbar-color: #d9dbe6 transparent;
+}
+.scroll-slim::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-slim::-webkit-scrollbar-thumb {
+  background: #d9dbe6;
+  border-radius: 8px;
+}
+.scroll-slim::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
