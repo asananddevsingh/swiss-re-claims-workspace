@@ -11,7 +11,8 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:sync": "tsx scripts/sync-catalogue.ts",
     "fixtures": "tsx scripts/make-bundle.ts",
-    "setup": "pnpm db:seed && pnpm fixtures && pnpm db:sync"
+    "setup": "pnpm db:seed && pnpm fixtures && pnpm db:sync",
+    "demo:reset": "tsx scripts/demo-reset.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
