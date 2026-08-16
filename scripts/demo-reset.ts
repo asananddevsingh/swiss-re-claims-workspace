@@ -20,7 +20,9 @@ const ROOT = join(process.cwd(), 'storage')
 async function main() {
   // 1. Derived documents from split jobs, and the jobs that produced them.
   const derived = (await sql.query(
-    `select id, storage_key from documents where id like '%-v2-%'`,
+    // Any derived version, not just v2 — an earlier pattern matched only the
+    // first generation and left v3 onward behind.
+    `select id, storage_key from documents where id ~ '-v[0-9]+-'`,
   )) as { id: string; storage_key: string }[]
 
   await sql.query('delete from jobs')
