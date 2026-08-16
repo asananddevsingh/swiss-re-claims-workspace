@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { neon } from '@neondatabase/serverless'
 import { config } from 'dotenv'
+import { FIXTURES, documentIdFor } from './fixtures'
 
 config({ path: '.env.local' })
 
@@ -79,7 +80,19 @@ function weightedStatus(): string {
 async function main() {
   console.log('applying schema…')
   const ddl = readFileSync(join(process.cwd(), 'src/lib/schema.sql'), 'utf8')
-  for (const stmt of ddl.split(';').map((s) => s.trim()).filter(Boolean)) {
+
+  // Strip line comments before splitting on the statement terminator. A comment
+  // containing a semicolon otherwise cuts the statement it documents in half,
+  // which is a genuinely confusing way to break a schema.
+  const statements = ddl
+    .split('\n')
+    .map((line) => line.replace(/--.*$/, ''))
+    .join('\n')
+    .split(';')
+    .map((s) => s.trim())
+    .filter(Boolean)
+
+  for (const stmt of statements) {
     await sql.query(stmt)
   }
 
@@ -88,20 +101,6 @@ async function main() {
     await sql.query(
       'insert into users (id, name, role, team_id, avatar_hue) values ($1,$2,$3,$4,$5)',
       [u.id, u.name, u.role, u.team, u.hue],
-    )
-  }
-
-  console.log('seeding documents…')
-  const docs = [
-    { id: 'doc-claims-bundle', file: 'claim-bundle-2026.pdf', size: 1_476_395_008, pages: 4180 },
-    { id: 'doc-survey-report', file: 'survey-report.pdf', size: 214_958_080, pages: 612 },
-    { id: 'doc-medical-file', file: 'medical-records.pdf', size: 689_147_904, pages: 1944 },
-    { id: 'doc-policy-pack', file: 'policy-wording.pdf', size: 104_857_600, pages: 288 },
-  ]
-  for (const d of docs) {
-    await sql.query(
-      'insert into documents (id, filename, byte_size, page_count, storage_key) values ($1,$2,$3,$4,$5)',
-      [d.id, d.file, d.size, d.pages, `documents/${d.id}.pdf`],
     )
   }
 
@@ -115,6 +114,8 @@ async function main() {
   for (let start = 0; start < ROW_COUNT; start += BATCH) {
     const values: unknown[] = []
     const tuples: string[] = []
+    const docValues: unknown[] = []
+    const docTuples: string[] = []
 
     for (let i = start; i < Math.min(start + BATCH, ROW_COUNT); i++) {
       const assignee = rand() < 0.88 ? pick(adjudicators) : null
@@ -122,8 +123,20 @@ async function main() {
       const created = now - Math.floor(rand() * 420) * 86_400_000
       const updated = created + Math.floor(rand() * 30) * 86_400_000
 
+      // One document per claim. The row is the claim's own; the bytes behind it
+      // are one of four shared fixtures.
+      const claimId = `clm-${String(i + 1).padStart(6, '0')}`
+      const fixture = FIXTURES[i % FIXTURES.length]
+      const docId = documentIdFor(claimId)
+
+      const docBase = docValues.length
+      docTuples.push(
+        `($${docBase + 1},$${docBase + 2},$${docBase + 3},$${docBase + 4},$${docBase + 5})`,
+      )
+      docValues.push(docId, fixture.filename, fixture.declaredSize, fixture.pages, fixture.key)
+
       const row = [
-        `clm-${String(i + 1).padStart(6, '0')}`,
+        claimId,
         `CLM-2026-${String(100000 + i).slice(-6)}`,
         `${pick(FIRST)} ${pick(LAST)}`,
         pick(INSURED),
@@ -135,7 +148,7 @@ async function main() {
         weightedStatus(),
         assignee?.id ?? null,
         team,
-        pick(docs).id,
+        docId,
         new Date(created).toISOString(),
         new Date(Math.min(updated, now)).toISOString(),
       ]
@@ -146,6 +159,12 @@ async function main() {
       )
       values.push(...row)
     }
+
+    await sql.query(
+      `insert into documents (id, filename, byte_size, page_count, storage_key)
+       values ${docTuples.join(',')}`,
+      docValues,
+    )
 
     await sql.query(
       `insert into claims (id, claim_ref, claimant, insured, policy_no, claim_type, channel,
@@ -169,7 +188,7 @@ async function main() {
       `insert into annotations (id, document_id, page_index, kind, x, y, w, h, body, author_id)
        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [
-        `ann-${page}`, 'doc-claims-bundle', page, 'note',
+        `ann-${page}`, documentIdFor('clm-000001'), page, 'note',
         0.12, 0.18 + (page % 3) * 0.2, 0.34, 0.06, body, 'u-marco',
       ],
     )

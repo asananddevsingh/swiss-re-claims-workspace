@@ -1,44 +1,49 @@
 /**
- * Aligns the document catalogue with whatever fixtures are actually on disk,
- * so the manifest never advertises pages the viewer cannot reach.
+ * Aligns the catalogue with the fixtures actually on disk, so a manifest never
+ * advertises pages the viewer cannot reach.
+ *
+ * Updates by storage key rather than by document id: many claim documents share
+ * one object, and all of them must report the same page count.
  */
-import { readdirSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, readFileSync, statSync } from 'node:fs'
+import { basename, join } from 'node:path'
 import { neon } from '@neondatabase/serverless'
 import { PDFDocument } from 'pdf-lib'
-import { readFileSync } from 'node:fs'
 import { config } from 'dotenv'
+import { FIXTURES } from './fixtures'
 
 config({ path: '.env.local' })
 const sql = neon(process.env.DATABASE_URL!)
+const ROOT = join(process.cwd(), 'storage')
 
 async function main() {
-  const dir = join(process.cwd(), 'storage', 'documents')
-  const files = readdirSync(dir).filter((f) => f.endsWith('.pdf'))
+  for (const fixture of FIXTURES) {
+    const path = join(ROOT, fixture.key)
 
-  for (const file of files) {
-    const id = file.replace(/\.pdf$/, '')
-    const path = join(dir, file)
-    const bytes = readFileSync(path)
-    const doc = await PDFDocument.load(bytes, { updateMetadata: false })
+    if (!existsSync(path)) {
+      console.log(`  ✗ ${basename(fixture.key)} — missing, run: pnpm fixtures`)
+      continue
+    }
+
+    const doc = await PDFDocument.load(readFileSync(path), { updateMetadata: false })
     const pages = doc.getPageCount()
     const size = statSync(path).size
 
-    await sql.query('update documents set page_count = $1 where id = $2', [pages, id])
-    console.log(`${id}: ${pages} pages, ${(size / 1_048_576).toFixed(1)} MB on disk`)
+    const rows = (await sql.query(
+      'update documents set page_count = $1 where storage_key = $2 returning id',
+      [pages, fixture.key],
+    )) as { id: string }[]
+
+    console.log(
+      `  ✓ ${basename(fixture.key)} — ${pages} pages, ${(size / 1_048_576).toFixed(1)} MB` +
+        ` → ${rows.length.toLocaleString()} document rows`,
+    )
   }
 
-  const rows = (await sql.query(
-    'select id, page_count, byte_size from documents order by id',
-  )) as { id: string; page_count: number; byte_size: string }[]
-
-  console.table(
-    rows.map((r) => ({
-      id: r.id,
-      pages: r.page_count,
-      declared: `${(Number(r.byte_size) / 1_048_576).toFixed(0)} MB`,
-    })),
-  )
+  const [{ docs }] = (await sql.query('select count(*)::int as docs from documents')) as {
+    docs: number
+  }[]
+  console.log(`\n${docs.toLocaleString()} documents across ${FIXTURES.length} objects`)
 }
 
 main().catch((e) => {
