@@ -2,6 +2,7 @@ import { createReadStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
+import { sql } from './db'
 
 /**
  * Document byte storage.
@@ -23,6 +24,41 @@ export const WRITE_ROOT = process.env.VERCEL ? '/tmp/storage' : READ_ROOT
 
 export type ObjectInfo = { size: number }
 
+/**
+ * Second backend, for objects with no file behind them.
+ *
+ * Seeded fixtures travel with the deployment and are read from disk. Job output
+ * has nowhere durable to go on a serverless host — the writable path is
+ * per-instance — so it is stored in the catalogue row and read back from there.
+ * Ranges are sliced in the database rather than loading the whole object, which
+ * keeps the read path the same shape as the filesystem one.
+ *
+ * Production would point both backends at object storage. This module is the
+ * only place that knows the difference.
+ */
+async function dbStat(key: string): Promise<ObjectInfo | null> {
+  const rows = (await sql.query(
+    `select octet_length(bytes) as size from documents
+     where storage_key = $1 and bytes is not null limit 1`,
+    [key],
+  )) as { size: number | null }[]
+
+  const size = rows[0]?.size
+  return size ? { size } : null
+}
+
+async function dbRange(key: string, start: number, end: number): Promise<Buffer | null> {
+  // Postgres substring is 1-indexed.
+  const rows = (await sql.query(
+    `select encode(substring(bytes from $2 for $3), 'base64') as chunk
+     from documents where storage_key = $1 and bytes is not null limit 1`,
+    [key, start + 1, end - start + 1],
+  )) as { chunk: string | null }[]
+
+  const chunk = rows[0]?.chunk
+  return chunk ? Buffer.from(chunk, 'base64') : null
+}
+
 async function resolve(key: string): Promise<string | null> {
   for (const root of WRITE_ROOT === READ_ROOT ? [READ_ROOT] : [WRITE_ROOT, READ_ROOT]) {
     try {
@@ -37,9 +73,11 @@ async function resolve(key: string): Promise<string | null> {
 
 export async function statObject(key: string): Promise<ObjectInfo | null> {
   const path = await resolve(key)
-  if (!path) return null
-  const s = await stat(path)
-  return { size: s.size }
+  if (path) {
+    const s = await stat(path)
+    return { size: s.size }
+  }
+  return dbStat(key)
 }
 
 export async function readRange(
@@ -48,16 +86,32 @@ export async function readRange(
   end: number,
 ): Promise<ReadableStream<Uint8Array> | null> {
   const path = await resolve(key)
-  if (!path) return null
-  const node = createReadStream(path, { start, end })
-  return Readable.toWeb(node) as ReadableStream<Uint8Array>
+  if (path) {
+    const node = createReadStream(path, { start, end })
+    return Readable.toWeb(node) as ReadableStream<Uint8Array>
+  }
+
+  const chunk = await dbRange(key, start, end)
+  if (!chunk) return null
+
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(new Uint8Array(chunk))
+      controller.close()
+    },
+  })
 }
 
 export async function readWhole(key: string) {
   const path = await resolve(key)
-  if (!path) return null
-  const { readFile } = await import('node:fs/promises')
-  return readFile(path)
+  if (path) {
+    const { readFile } = await import('node:fs/promises')
+    return readFile(path)
+  }
+
+  const info = await dbStat(key)
+  if (!info) return null
+  return dbRange(key, 0, info.size - 1)
 }
 
 /**

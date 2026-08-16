@@ -19,8 +19,14 @@ create table documents (
   page_count   int not null,
   version      int not null default 1,
   storage_key  text not null,
+  -- Seeded fixtures ship with the deployment and live on disk. Job output has
+  -- nowhere durable to go on a serverless host, so it is stored here instead.
+  -- In production both would be object storage; see src/lib/storage.ts.
+  bytes        bytea,
   created_at   timestamptz not null default now()
 );
+
+create index documents_storage_key on documents (storage_key);
 
 create table claims (
   id            text primary key,

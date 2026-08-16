@@ -2,7 +2,7 @@ import { writeFile, mkdir } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { PDFDocument } from 'pdf-lib'
 import { sql } from './db'
-import { readWhole, WRITE_ROOT } from './storage'
+import { readWhole, WRITE_ROOT, READ_ROOT } from './storage'
 
 export type JobKind = 'split' | 'merge' | 'delete_pages'
 
@@ -100,25 +100,42 @@ export async function runPageOperation(
       return
     }
 
-    const newId = `${documentId}-v${source.version + 1}-${Date.now().toString(36)}`
-    const key = `documents/${newId}.pdf`
     const saved = await out.save({ useObjectStreams: false })
 
-    const target = join(WRITE_ROOT, key)
-    await mkdir(dirname(target), { recursive: true })
-    await writeFile(target, saved)
+    // Version numbering follows the lineage, not the immediate source. Deriving
+    // it from `source.version + 1` made every output v2, because the source was
+    // always the original.
+    const root = documentId.replace(/-v\d+-[a-z0-9]+$/, '')
+    const [{ next }] = (await sql.query(
+      `select coalesce(max(version), 1) + 1 as next from documents
+       where id = $1 or id like $2`,
+      [root, `${root}-v%`],
+    )) as { next: number }[]
+
+    const newId = `${root}-v${next}-${Date.now().toString(36)}`
+    const key = `documents/${newId}.pdf`
+
+    // Write to disk when there is a durable one, which there is in development.
+    if (WRITE_ROOT === READ_ROOT) {
+      const target = join(WRITE_ROOT, key)
+      await mkdir(dirname(target), { recursive: true })
+      await writeFile(target, saved)
+    }
 
     // The pointer swap. Until this row exists, nothing has changed for readers.
+    // Bytes go in the row itself so the output survives on a host whose only
+    // writable path is per-instance — see src/lib/storage.ts.
     await sql.query(
-      `insert into documents (id, filename, byte_size, page_count, version, storage_key)
-       values ($1,$2,$3,$4,$5,$6)`,
+      `insert into documents (id, filename, byte_size, page_count, version, storage_key, bytes)
+       values ($1,$2,$3,$4,$5,$6, decode($7, 'base64'))`,
       [
         newId,
-        `${source.filename.replace(/\.pdf$/, '')}-${kind}.pdf`,
+        `${source.filename.replace(/\.pdf$/, '')}-${kind}-v${next}.pdf`,
         saved.length,
         keep.length,
-        source.version + 1,
+        next,
         key,
+        Buffer.from(saved).toString('base64'),
       ],
     )
 
