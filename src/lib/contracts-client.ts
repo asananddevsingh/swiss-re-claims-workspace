@@ -34,3 +34,14 @@ export type Job = {
   message: string | null
   createdAt: string
 }
+
+export type DocumentVersion = {
+  id: string
+  filename: string
+  pageCount: number
+  byteSize: number
+  version: number
+  createdAt: string
+  /** Job output lives on the writable path a serverless host provides, which is per-instance. */
+  available: boolean
+}

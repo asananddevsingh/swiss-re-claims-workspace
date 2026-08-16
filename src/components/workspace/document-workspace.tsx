@@ -6,16 +6,33 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import {
   Scissors, Trash2, MessageSquarePlus, X, Loader2,
-  ZoomIn, ZoomOut, CircleAlert, CircleCheck,
+  ZoomIn, ZoomOut, CircleAlert, CircleCheck, FileStack,
 } from 'lucide-react'
 import { openDocument } from '@/lib/pdf'
 import { PdfPage } from './pdf-page'
 import { Button } from '@/components/ui/primitives'
 import { cn } from '@/lib/cn'
-import type { Annotation, Manifest, Job } from '@/lib/contracts-client'
+import type { Annotation, Manifest, Job, DocumentVersion } from '@/lib/contracts-client'
 
 const GAP = 22
 const ZOOMS = [420, 560, 700, 860, 1040]
+
+/**
+ * Stable 32-bit hash of a page selection.
+ *
+ * The idempotency key has to identify a selection without containing it —
+ * embedding the page list directly produced a 10,000-character key for a
+ * whole-document operation, which the request schema rightly rejected.
+ * Same selection in, same key out, which is all the server needs.
+ */
+function hashPages(pages: number[]): string {
+  let h = 0x811c9dc5
+  for (const p of pages) {
+    h ^= p
+    h = Math.imul(h, 0x01000193)
+  }
+  return (h >>> 0).toString(36)
+}
 
 export function DocumentWorkspace({
   documentId,
@@ -171,7 +188,7 @@ export function DocumentWorkspace({
         pages,
         // Stable per intent, so a retry after a network blip replays rather
         // than running the operation a second time.
-        idempotencyKey: `${documentId}:${kind}:${pages.join(',')}`,
+        idempotencyKey: `${documentId}:${kind}:${pages.length}:${hashPages(pages)}`,
       }),
     })
 
@@ -276,6 +293,7 @@ export function DocumentWorkspace({
       </div>
 
       <SidePanel
+        documentId={documentId}
         claimRef={claimRef}
         manifest={manifest}
         annotations={annotations}
@@ -364,6 +382,7 @@ function Toolbar({
 }
 
 function SidePanel({
+  documentId,
   claimRef,
   manifest,
   annotations,
@@ -376,6 +395,7 @@ function SidePanel({
   onCancel,
   onDismissJob,
 }: {
+  documentId: string
   claimRef: string
   manifest?: Manifest
   annotations: Annotation[]
@@ -476,6 +496,8 @@ function SidePanel({
         {job && <JobCard job={job} onCancel={onCancel} onDismiss={onDismissJob} />}
       </section>
 
+      <VersionsPanel documentId={documentId} jobStatus={job?.status} />
+
       <section className="rounded-2xl bg-white p-5 shadow-[0_10px_60px_rgba(226,236,249,0.5)]">
         <h3 className="mb-3 text-[14px] font-bold">
           Comments{' '}
@@ -557,5 +579,71 @@ function JobCard({
         </button>
       )}
     </div>
+  )
+}
+
+/**
+ * Outputs produced by page operations on this document.
+ *
+ * Refetches when a job reaches a terminal state, so a completed split appears
+ * without a reload — the difference between "the job said it worked" and being
+ * able to see and open the result.
+ */
+function VersionsPanel({
+  documentId,
+  jobStatus,
+}: {
+  documentId: string
+  jobStatus?: Job['status']
+}) {
+  const { data } = useQuery<{ versions: DocumentVersion[] }>({
+    queryKey: ['versions', documentId, jobStatus === 'done' ? 'done' : 'idle'],
+    queryFn: async () => {
+      const res = await fetch(`/api/documents/${documentId}/versions`)
+      if (!res.ok) throw new Error('Could not load versions')
+      return res.json()
+    },
+  })
+
+  const versions = data?.versions ?? []
+  if (!versions.length) return null
+
+  return (
+    <section className="rounded-2xl bg-white p-5 shadow-[0_10px_60px_rgba(226,236,249,0.5)]">
+      <h3 className="mb-1 text-[14px] font-bold">
+        Operation output <span className="font-normal text-muted">({versions.length})</span>
+      </h3>
+      <p className="mb-3 text-[12px] leading-snug text-nav">
+        Each split or removal writes a new document. The source above is unchanged.
+      </p>
+
+      <ul className="flex flex-col gap-2">
+        {versions.map((v) => (
+          <li key={v.id}>
+            <a
+              href={`/documents/${v.id}`}
+              className="block rounded-field border border-line px-3 py-2.5 transition hover:border-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            >
+              <span className="flex items-center gap-2">
+                <FileStack className="size-3.5 shrink-0 text-brand" />
+                <span className="text-[13px] font-semibold tabular-nums">
+                  {v.pageCount.toLocaleString()} pages
+                </span>
+                <span className="ml-auto text-[11px] text-muted">v{v.version}</span>
+              </span>
+              <span className="mt-0.5 block truncate text-[11.5px] text-muted">
+                {v.filename}
+              </span>
+              {!v.available && (
+                <span className="mt-1 block text-[11px] leading-snug text-[#9a6700]">
+                  Row recorded, bytes not on this instance — job output is written to the only
+                  writable path a serverless host has.
+                </span>
+              )}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }

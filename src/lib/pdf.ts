@@ -1,11 +1,31 @@
 'use client'
 
-import * as pdfjs from 'pdfjs-dist'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 
-// Parsing runs off the main thread. Without this the page rail stutters while
-// the thing it is scrolling over is being parsed.
-pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+/**
+ * PDF.js is loaded on first use rather than at module scope.
+ *
+ * A client component is still rendered on the server to produce initial HTML,
+ * and importing pdfjs-dist there evaluates browser-only globals — `DOMMatrix`
+ * is the one that throws. Deferring the import to the point of use keeps the
+ * module off the server entirely.
+ *
+ * The promise is cached, so the worker is configured exactly once no matter how
+ * many documents are opened.
+ */
+let pdfjsPromise: Promise<typeof import('pdfjs-dist')> | null = null
+
+function loadPdfjs() {
+  if (!pdfjsPromise) {
+    pdfjsPromise = import('pdfjs-dist').then((mod) => {
+      // Parsing runs off the main thread. Without this the page rail stutters
+      // while the thing it is scrolling over is being parsed.
+      mod.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+      return mod
+    })
+  }
+  return pdfjsPromise
+}
 
 export type LoadedDocument = {
   doc: PDFDocumentProxy
@@ -21,6 +41,8 @@ export type LoadedDocument = {
  * With it off, the only bytes that move are the ones a visible page needs.
  */
 export async function openDocument(url: string): Promise<LoadedDocument> {
+  const pdfjs = await loadPdfjs()
+
   const task = pdfjs.getDocument({
     url,
     disableAutoFetch: true,
