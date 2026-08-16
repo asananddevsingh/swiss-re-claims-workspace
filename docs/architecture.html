@@ -991,7 +991,7 @@
   <h2>What the BFF assumes exists</h2>
 
   <div class="api">
-    <div><span class="verb">GET</span><span><span class="path">/api/claims</span><span class="desc">cursor, limit, sort, filters → rows + capabilities + estimated total</span></span></div>
+    <div><span class="verb">GET</span><span><span class="path">/api/claims</span><span class="desc">page, pageSize, sort, filters → rows + capabilities + total</span></span></div>
     <div><span class="verb">PATCH</span><span><span class="path">/api/claims/:id</span><span class="desc">field-level edit; validated server-side against the same schema the form uses</span></span></div>
     <div><span class="verb">POST</span><span><span class="path">/api/claims/:id/assign</span><span class="desc">reassign; rejected unless policy grants assign on that record</span></span></div>
     <div><span class="verb">GET</span><span><span class="path">/api/documents/:id/manifest</span><span class="desc">page count, dimensions, byte offsets, thumbnail URLs, current version</span></span></div>

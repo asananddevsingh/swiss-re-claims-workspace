@@ -29,7 +29,6 @@ export const gridQuery = z.object({
   dir: z.enum(['asc', 'desc']).default('desc'),
   page: z.coerce.number().int().min(1).max(100_000).default(1),
   pageSize: z.coerce.number().int().min(10).max(200).default(50),
-  cursor: z.string().optional(),
 })
 export type GridQuery = z.infer<typeof gridQuery>
 

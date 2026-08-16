@@ -11,7 +11,7 @@ not a requirement.
 |---|---|---|---|
 | **NFR-P1** | Queue is interactive on load | Interactive within **2 s** on a warm connection | Server-side paging; only 50 rows cross the wire |
 | **NFR-P2** | Rows in the DOM stay bounded | **≤ 20** row elements regardless of page size or dataset size | Windowed rendering with overscan |
-| **NFR-P3** | Deep pages cost the same as shallow ones | Last page within **1.5×** the time of page 2 | Indexed ordering; `ADR-004` covers the offset/keyset trade-off |
+| **NFR-P3** | Deep pages stay usable | Last page within **1.5×** the time of page 2 at the seeded size | Ordering served by a composite index; `ADR-012` covers why offset rather than keyset |
 | **NFR-P4** | Typing does not flood the network | **One** request per 300 ms of typing, at most | Debounced input folded into the query key |
 | **NFR-P5** | Document memory stays bounded | **≤ 8** page canvases mounted at once, irrespective of page count | Virtualised page list with recycling |
 | **NFR-P6** | Opening a large document is cheap | **< 500 KB** transferred to open a 1.5 GB document at an arbitrary page | Manifest + byte-range fetching only for visible pages |

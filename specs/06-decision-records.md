@@ -1,6 +1,6 @@
 # 06 — Decision records
 
-Eleven decisions that shaped the build. Each records what was chosen, what it was chosen *over*,
+Twelve decisions that shaped the build. Each records what was chosen, what it was chosen *over*,
 what it costs, and what would change the answer.
 
 A decision with no stated cost has not been thought about properly.
@@ -330,3 +330,36 @@ and demonstrate nothing the brief asks about.
 - ⚠️ **Not production authentication.** No identity provider, no refresh, no revocation, no MFA.
   The role switcher would be removed outright.
 - ⚠️ Roles are static per user; delegation and temporary elevation are unmodelled.
+
+---
+
+## ADR-012 — Offset pagination, not keyset
+
+**Status:** Accepted
+
+**Context.** Keyset pagination — `WHERE (updated_at, id) < (:cursor)` — is the textbook answer for
+deep paging. It is index-seekable and constant-time at any depth, where `OFFSET n` makes the
+database walk and discard `n` rows.
+
+**But keyset cannot jump to an arbitrary page.** It only moves relative to a cursor you already
+hold, so it supports next and previous and nothing else. `ADR-003` established that the client's
+design standard specifies numbered pages, and numbered pages mean a reader can click page 40
+without having visited 39.
+
+**Decision.** Offset pagination, with the ordering served by a composite index on
+`(updated_at desc, id desc)` that matches the default sort.
+
+**Consequences.**
+
+- ✅ Supports the navigation the design requires, including arbitrary page jumps.
+- ✅ Simple, and correct for the dataset in front of it.
+- ⚠️ Cost grows with depth. At 20,000 rows this is not measurable; at ten million it would be.
+
+**Revisit if** the queue grows past roughly a million rows *or* deep paging turns out to be common
+in real usage. The likely answer then is a hybrid rather than a straight swap: keyset for next and
+previous, which is the overwhelming majority of navigation, and offset retained only for an
+explicit page jump — which is rare, user-initiated, and therefore tolerable.
+
+> The honest note is that keyset was the original intent and appeared in an early draft of the
+> architecture document while the code did offset. That is exactly the kind of drift a
+> specification is supposed to prevent, so it is recorded here rather than quietly corrected.
