@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/role-supports-aria-props */
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'

@@ -843,15 +843,18 @@
       <line x1="440" y1="308" x2="524" y2="352" class="dg-line-bad" stroke-width="2.2" />
       <line x1="524" y1="308" x2="440" y2="352" class="dg-line-bad" stroke-width="2.2" />
       <text x="248" y="376" class="dg-label dg-bad">full-file GET — never issued</text>
-      <text x="248" y="396" class="dg-label dg-note">this is the path PDF.js takes by default; disableAutoFetch closes it</text>
+      <text x="248" y="396" class="dg-label dg-note">the default path; disableStream + disableAutoFetch together close it</text>
 
       <line x1="0" y1="60" x2="1000" y2="60" stroke="var(--rule)" stroke-width="1" />
       <text x="0" y="42" class="dg-label dg-note">TOTAL TRANSFERRED TO OPEN THE DOCUMENT AT PAGE 1,800 — ABOUT 104 KB</text>
     </svg>
     <figcaption>
       <b>The crossed-out arrow is the whole point.</b> PDF.js background-fetches the entire file
-      unless <code>disableAutoFetch</code> is set — a single option separating a working viewer from
-      a dead tab. Range support requires <code>Accept-Ranges</code> and a CORS policy exposing
+      unless <strong>both</strong> <code>disableStream</code> and <code>disableAutoFetch</code>
+      are set. They do different jobs, and setting only the second — which is the one every article
+      mentions — leaves the progressive full-file read in place. The document arrives whole and the
+      range requests that follow are served from cache, so the network panel shows 206 responses
+      while the opposite of streaming is happening. Range support requires <code>Accept-Ranges</code> and a CORS policy exposing
       <code>Content-Range</code>, which is why the object store must be one whose headers we control.
     </figcaption>
   </figure>

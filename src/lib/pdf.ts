@@ -35,18 +35,24 @@ export type LoadedDocument = {
 /**
  * Opens a document over HTTP Range.
  *
- * disableAutoFetch is the option that matters. Left at its default, PDF.js
- * quietly pulls the remaining bytes in the background after the first page
- * resolves — which is fine for a 2 MB invoice and fatal for a 1.5 GB bundle.
- * With it off, the only bytes that move are the ones a visible page needs.
+ * Two options decide whether the file is streamed whole or read in pieces, and
+ * only both together give range-only behaviour. Setting just disableAutoFetch
+ * leaves the progressive full-file read in place, so the whole object arrives
+ * anyway and the range requests that follow are served from cache — which looks
+ * like streaming in the network panel while being the opposite of it.
  */
 export async function openDocument(url: string): Promise<LoadedDocument> {
   const pdfjs = await loadPdfjs()
 
   const task = pdfjs.getDocument({
     url,
+    // Both flags are required, and they do different jobs. disableAutoFetch
+    // stops the background prefetch of remaining chunks; disableStream stops
+    // the full-file progressive read. With streaming left on, PDF.js opens one
+    // GET for the whole object and reads it through — which downloaded the
+    // entire document while the range requests that followed merely hit cache.
     disableAutoFetch: true,
-    disableStream: false,
+    disableStream: true,
     rangeChunkSize: 65536,
     withCredentials: true,
   })
