@@ -1047,11 +1047,11 @@
   </div>
 
   <div class="decision">
-    <h4>Server-side page rasterisation <span class="pill chosen">chosen</span> over pure client parsing <span class="pill rejected">rejected</span></h4>
+    <h4>Client-side rendering <span class="pill chosen">chosen</span> over server-side rasterisation <span class="pill rejected">deferred</span></h4>
     <dl>
-      <dt>Because</dt><dd>Thumbnails for thousands of pages cannot be produced in the browser at acceptable cost, and rasterising once server-side serves every user who opens that document.</dd>
-      <dt>Costs</dt><dd>Rasterisation infrastructure and a cache to maintain; first-open latency for a never-seen document.</dd>
-      <dt>Revisit if</dt><dd>Documents are small and rarely shared — then client-only rendering removes a whole service.</dd>
+      <dt>Because</dt><dd>Rendering in the browser removes an entire service. The measured cost per page here is about 1.6&nbsp;KB of content, which is light enough that fetching and painting a page client-side is cheap, and it keeps the byte-range path — the thing the requirement is really about — end to end and demonstrable.</dd>
+      <dt>Costs</dt><dd>It does not hold as page weight grows. A scanned bundle averages a few hundred kilobytes per page rather than one and a half, so per-page transfer and decode grow with it. Thumbnails for a page rail of several thousand pages are not feasible client-side at all, which is why the rail here shows placeholders rather than previews.</dd>
+      <dt>Revisit if</dt><dd>Pages are image-heavy, or a document is opened by many people — then rasterising once server-side and serving page images amortises across every reader, and it is the change I would make first for genuinely large bundles.</dd>
     </dl>
   </div>
 </section>
